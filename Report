@@ -1,0 +1,80 @@
+
+Introduction
+
+Ray tracing is a computanionally expensive render technique used to obtain realistic images by simulating how light works in real life. Initially, this technique was not used in real time applications due to the intense computation requirements that made it slow, but now, thanks to GPUs, new solutions have emerged that reduce computation time significantly, and that allow us to see real time ray tracing in applications such as CAD tools or videogames. 
+In this project I implemented a basic ray casting algorithm, which a simpler version of a ray tracer, that runs in the GPU with CUDA, and compared it with the CPU based implementation.
+
+Implementation
+
+In ray tracing when a ray hits a surface, a new bouncing ray is created, that will contribute to the final color of the pixel. This means that different rays depend on each other. In ray casting, on the contrary, each ray is completely independant,since there are no bounces, only one ray per pixel, which makes it easier to parallelized in a GPU arquitechture, where each thread could calculate each ray, without having to communicate with the rest of the threads. 
+My implementation is based on the "Ray Tracing on Programmable Graphics Hardware" paper by Purcell. There are three main steps to calculate each pixel color:
+
+   - Generate a ray for every pixel
+   - Calculate wich object in the scene are intersected by each ray
+   - Calculate the color of the pixel based on the object material, and the light sources in the scene. 
+
+Depending no the resolution of the image, the generation of the rays could be done in the CPU, since for small image sizes, it would take more time sending and receiving the data to and from the GPU ,than calculating it directly in the CPU.
+For the other two tasks I created to different kernels, and intersecter, and a shader. In order to minimize data tranfers, the geometry information, which will be used in the intercepter, is separated from the color information, that will be needed in the shader. The intersecter receives the list of primitives, and the list of rays, and returns the intersection points and the objects that have been intersected. The shader, takes the intersection points of each object, and information needed for the shading, such as normals, lights, or materials, and returns the final color of the pixel.
+By separating the intersection and the shading kernel, many different shading kernel can be used, without having to change anything else on the program.
+
+
+Results
+
+The performance increases significantly in the CUDA version. The program has been run with different image sizes, number of triangles, and threads per block.
+The results are shown below:
+
+
+
+------------------- CHARTS --------------------------
+
+
+Problems and improvements
+
+
+One of the problems of this implementation is that it requires that the information of the scene, and its objects are loaded in the GPU. As shown above, the memory in the GPU may not be big enough to store scenes with a large number of elements. A possible solution could be dividing the scene and calculating each group of objects one at a time, but this would increase data transfer and performance would decrease.
+Another problem is that shading kernels could be very large and complex, and require a lot of resources, this means that the number of threads per block will be limited because of the limited number of registers per SM and shared memory. This could be solved by increasing the size of the pipeline, subdividing the shading kernel into smallers kernels. This, however, would increase data transfers, in order to pass data from one shading stage to another.
+Even though the workload now is distributed among the threads, if we have a big scene with many objects, each thread still has to compute the possible intersection for each object. This could be improved by having more than one thread calculate intersections for the same ray, or by improving the intersection algorithm using acceleration structures such as octrees.
+
+
+
+
+
+
+
+
+
+
+
+- implies more data (idRay)
+- and probably more calculations if you don't want to move data from host to device all the time
+
+- kernels largos, muchos registros, menos threads per block
+- meter todas la escene en memoria... malo pa muchos objetos
+
+
+
+
+Most important: Impact on graphics systems
+
+    What did you learn about graphics systems?
+    How will what you learned impact future graphics systems?
+
+Consider ... 
+
+    Impact on hardware design
+    Impact on API/programming system?
+    Impact on overall performance?
+    Impact on runtime (how much?), quality (how good?), bandwidth (how much?)
+    What is efficient (uses the hardware well) and what is inefficient?
+    How would you propose changing what is inefficient? 
+    Generality?
+    Scalability?
+
+Think about presenting to any of our guest speakers ...
+
+    High-level motivation: Why is the problem you chose important?
+    Technical detail: Why is your solution a good one? (Make sure to detail your contribution!)
+    Describe previous work
+    Concentrate on impact on graphics hardware
+    Throughout, think about: Analysis!
+
